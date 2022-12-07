@@ -139,7 +139,9 @@ workflow AIRRFLOW {
         ch_presto_collapseseq_logs =  Channel.empty()
         ch_presto_splitseq_logs =  Channel.empty()
 
-    } else {
+    } else if ( params.mode == "trust4" ) {
+        ch_fasta = Channel.empty()
+    }else {
         exit 1, "Mode parameter value not valid."
     }
     // Perform V(D)J annotation and filtering
