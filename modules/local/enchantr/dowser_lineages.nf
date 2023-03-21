@@ -1,9 +1,14 @@
 def asString (args) {
-    s = ""
+    def s = ""
+    def value = ""
     if (args.size()>0) {
         if (args[0] != 'none') {
             for (param in args.keySet().sort()){
-                s = s + ",'"+param+"'='"+args[param]+"'"
+                value = args[param].toString()
+                if (!value.isNumber()) {
+                    value = "'"+value+"'"
+                }
+                s = s + ",'"+param+"'="+value
             }
         }
     }
@@ -13,19 +18,16 @@ def asString (args) {
 process DOWSER_LINEAGES {
     tag "${meta.id}"
 
-    label 'process_high'
-    label 'process_long'
+    label 'process_long_parallelized'
     label 'error_ignore'
     label 'immcantation'
-    label 'enchantr'
 
-    conda (params.enable_conda ? "bioconda::r-enchantr=0.0.3" : null)
+    conda "bioconda::r-enchantr=0.1.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-enchantr:0.0.3--r42hdfd78af_1':
-        'quay.io/biocontainers/r-enchantr:0.0.3--r42hdfd78af_1' }"
+        'https://depot.galaxyproject.org/singularity/r-enchantr:0.1.1--r42hdfd78af_0':
+        'quay.io/biocontainers/r-enchantr:0.1.1--r42hdfd78af_0' }"
 
     input:
-    //tuple val(meta), path(tabs) // sequence tsv in AIRR format
     tuple val(meta), path(tabs)
 
     output:

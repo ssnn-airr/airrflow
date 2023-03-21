@@ -4,20 +4,18 @@
 process VALIDATE_INPUT {
     tag "$samplesheet"
     label 'immcantation'
-    label 'enchantr'
-    label 'single_cpu'
+    label 'process_single'
 
-    conda (params.enable_conda ? "bioconda::r-enchantr=0.0.3" : null)
+    conda "bioconda::r-enchantr=0.1.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-enchantr:0.0.3--r42hdfd78af_1':
-        'quay.io/biocontainers/r-enchantr:0.0.3--r42hdfd78af_1' }"
+        'https://depot.galaxyproject.org/singularity/r-enchantr:0.1.1--r42hdfd78af_0':
+        'quay.io/biocontainers/r-enchantr:0.1.1--r42hdfd78af_0' }"
 
     input:
     file samplesheet
     path miairr
     val collapseby
     val cloneby
-    //val reassign
 
     output:
     path "*/validated_input.tsv", emit: validated_input

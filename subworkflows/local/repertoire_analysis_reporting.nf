@@ -1,6 +1,6 @@
 include { PARSE_LOGS } from '../../modules/local/parse_logs.nf'
 include { REPORT_FILE_SIZE } from '../../modules/local/enchantr/report_file_size.nf'
-include { ALAKAZAM_SHAZAM_REPERTOIRES  } from '../../modules/local/alakazam/alakazam_shazam_repertoires'
+include { AIRRFLOW_REPORT  } from '../../modules/local/airrflow_report/airrflow_report'
 
 workflow REPERTOIRE_ANALYSIS_REPORTING {
 
@@ -20,12 +20,12 @@ workflow REPERTOIRE_ANALYSIS_REPORTING {
     ch_bulk_qc_and_filter_logs
     ch_sc_qc_and_filter_logs
     ch_clonal_analysis_logs
-    ch_repertoires
-    ch_input
-    ch_report_rmd
-    ch_report_css
-    ch_report_logo
-    ch_metadata
+    ch_repertoires // Repertoire tsv files from clonal analysis process
+    ch_input // Input samplesheet
+    ch_report_rmd // Report Rmarkdown file
+    ch_report_css // Report CSS file
+    ch_report_logo // Logo to be displayed in report
+    ch_metadata // Validated samplesheet
 
     main:
     ch_versions = Channel.empty()
@@ -55,19 +55,37 @@ workflow REPERTOIRE_ANALYSIS_REPORTING {
                                         ch_reassign_logs,
                                         ch_sc_qc_and_filter_logs,
                                         ch_clonal_analysis_logs)
+
+    ch_logs_tabs =  ch_logs.collect()
+                        .flatten()
+                        .map{ it -> it.toString() }
+                        .dump(tag: 'ch_logs_tabs')
+                        .collectFile(name: 'all_logs_tabs.txt', newLine: true)
+
     REPORT_FILE_SIZE(
-        ch_logs.collect().ifEmpty([]),
+        ch_logs_tabs.ifEmpty([]),
         ch_metadata
     )
+    ch_versions = ch_versions.mix(REPORT_FILE_SIZE.out.versions)
 
-    ALAKAZAM_SHAZAM_REPERTOIRES(
-        ch_repertoires,
+    ch_repertoires_report = ch_repertoires
+        .map{ it -> it[1] }
+        .collect()
+        .flatten()
+        .map{ it -> it.toString() }
+        .dump(tag: 'ch_repertoires_report')
+        .collectFile(name: 'all_repertoires_report_tabs.txt', newLine: true)
+        .map { it -> [ [id:'all_reps'], it ] }
+
+    AIRRFLOW_REPORT(
+        ch_repertoires_report,
         ch_parsed_logs.collect().ifEmpty([]),
+        REPORT_FILE_SIZE.out.table.ifEmpty([]),
         ch_report_rmd,
         ch_report_css,
         ch_report_logo
     )
-    ch_versions = ch_versions.mix(ALAKAZAM_SHAZAM_REPERTOIRES.out.versions)
+    ch_versions = ch_versions.mix(AIRRFLOW_REPORT.out.versions)
 
     emit:
     versions = ch_versions

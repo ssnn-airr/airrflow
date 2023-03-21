@@ -4,13 +4,12 @@
 process REPORT_FILE_SIZE {
     tag "file_size"
     label 'immcantation'
-    label 'single_cpu'
-    label 'enchantr'
+    label 'process_single'
 
-    conda (params.enable_conda ? "bioconda::r-enchantr=0.0.3" : null)
+    conda "bioconda::r-enchantr=0.1.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-enchantr:0.0.3--r42hdfd78af_1':
-        'quay.io/biocontainers/r-enchantr:0.0.3--r42hdfd78af_1' }"
+        'https://depot.galaxyproject.org/singularity/r-enchantr:0.1.1--r42hdfd78af_0':
+        'quay.io/biocontainers/r-enchantr:0.1.1--r42hdfd78af_0' }"
 
     input:
     path logs
@@ -19,12 +18,12 @@ process REPORT_FILE_SIZE {
     output:
     path "*_report", emit: file_size
     path "versions.yml", emit: versions
+    path "file_size_report/tables/log_data.tsv", emit: table
 
     script:
     """
-    echo "${logs.join('\n')}" > logs.txt
     Rscript -e "enchantr::enchantr_report('file_size', \\
-        report_params=list('input'='logs.txt', 'metadata'='${metadata}',\\
+        report_params=list('input'='${logs}', 'metadata'='${metadata}',\\
         'outdir'=getwd()))"
 
     echo "\"${task.process}\":" > versions.yml

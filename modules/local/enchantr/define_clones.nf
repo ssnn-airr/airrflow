@@ -1,24 +1,30 @@
 def asString (args) {
-    s = ""
+    def s = ""
+    def value = ""
     if (args.size()>0) {
         if (args[0] != 'none') {
             for (param in args.keySet().sort()){
-                s = s + ",'"+param+"'='"+args[param]+"'"
+                value = args[param].toString()
+                if (!value.isNumber()) {
+                    value = "'"+value+"'"
+                }
+                s = s + ",'"+param+"'="+value
             }
         }
     }
     return s
 }
+
 process DEFINE_CLONES {
     tag "${meta.id}"
 
     label 'process_long_parallelized'
     label 'immcantation'
 
-    conda (params.enable_conda ? "bioconda::r-enchantr=0.0.3" : null)
+    conda "bioconda::r-enchantr=0.1.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-enchantr:0.0.3--r42hdfd78af_1':
-        'quay.io/biocontainers/r-enchantr:0.0.3--r42hdfd78af_1' }"
+        'https://depot.galaxyproject.org/singularity/r-enchantr:0.1.1--r42hdfd78af_0':
+        'quay.io/biocontainers/r-enchantr:0.1.1--r42hdfd78af_0' }"
 
     input:
     tuple val(meta), path(tabs) // meta, sequence tsv in AIRR format
@@ -26,7 +32,7 @@ process DEFINE_CLONES {
     path imgt_base
 
     output:
-    path("*/*clone-pass.tsv"), emit: tab, optional: true // sequence tsv in AIRR format
+    path("*/*/*clone-pass.tsv"), emit: tab // sequence tsv in AIRR format
     path("*/*_command_log.txt"), emit: logs //process logs
     path "*_report"
     path "versions.yml", emit: versions

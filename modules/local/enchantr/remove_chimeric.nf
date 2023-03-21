@@ -1,16 +1,14 @@
 process REMOVE_CHIMERIC {
     tag "$meta.id"
 
-    label 'process_high'
     label 'process_long_parallelized'
     label 'immcantation'
-    label 'enchantr'
 
 
-    conda (params.enable_conda ? "bioconda::r-enchantr=0.0.3" : null)
+    conda "bioconda::r-enchantr=0.1.1"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-enchantr:0.0.3--r42hdfd78af_1':
-        'quay.io/biocontainers/r-enchantr:0.0.3--r42hdfd78af_1' }"
+        'https://depot.galaxyproject.org/singularity/r-enchantr:0.1.1--r42hdfd78af_0':
+        'quay.io/biocontainers/r-enchantr:0.1.1--r42hdfd78af_0' }"
 
 
     input:
