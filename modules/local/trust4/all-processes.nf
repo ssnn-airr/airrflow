@@ -180,13 +180,21 @@ process CHANGEO_PARSEDB_SELECT {
     { # try
         ParseDb.py select -d "${tab}" -f v_call -u IG --regex --outname "${meta.sample_id}_IG" > "${meta.sample_id}_IG_select_command_log.txt"
     } || { # catch
-        echo "Emplty file ${tab}" > "${meta.sample_id}_IG_select_command_log.txt" && rm "${meta.sample_id}_IG_parse-select.tsv"
+        echo "Emplty file ${tab}" > "${meta.sample_id}_select_command_log.txt"
     }
     { # try
         ParseDb.py select -d "${tab}" -f v_call -u TR --regex --outname "${meta.sample_id}_TR" > "${meta.sample_id}_TR_select_command_log.txt"
     } || { # catch
-        echo "Emplty file ${tab}" > "${meta.sample_id}_TR_select_command_log.txt" && rm "${meta.sample_id}_TR_parse-select.tsv"
+        echo "Emplty file ${tab}" >> "${meta.sample_id}_select_command_log.txt"
     }
+    if [[ `wc -l <*IG_parse-select.tsv` -le 1 ]];then
+       rm *IG_parse-select.tsv
+       echo "Emplty file ${meta.sample_id}_IG_parse-select.tsv" >> "${meta.sample_id}_select_command_log.txt"
+    fi
+    if [[ `wc -l <*TR_parse-select.tsv` -le 1 ]];then
+       rm *TR_parse-select.tsv
+       echo "Emplty file ${meta.sample_id}_TR_parse-select.tsv" >> "${meta.sample_id}_select_command_log.txt"
+    fi
     """
 }
 
