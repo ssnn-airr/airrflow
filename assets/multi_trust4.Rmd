@@ -1,0 +1,158 @@
+---
+title: "Multi TRUST4 report"
+author: "S. Marquez"
+date: "Updated: `r date()`"
+output:
+   html_document:
+      toc: true
+      toc_float: true
+      toc_depth: 3
+      theme: default
+      number_sections: true
+      df_print: paged
+      highlight: pygments
+      code_folding: hide
+      self_contained: true
+params:
+   airr:
+      label: "`airr`: Path to airr repertoires file-of-files."
+      input: file
+      value: "input_airr.txt"
+   read_count:
+      label: "`read_count`: Path to read_count file-of-files with the read_count file for each of the repertoires in `airr` (same order)."
+      input: file
+      value: "input_read_count.txt"
+   sample_id:
+      label: "`sample_id`: Path to sample_id file-of-files with the sample_id file for each of the repertoires in `airr` (same order)."
+      input: file
+      value: "input_sample_id.txt"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=T, message=T, cache=TRUE)
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(tidyr))
+suppressPackageStartupMessages(library(alakazam))
+suppressPackageStartupMessages(library(airr))
+suppressPackageStartupMessages(library(enchantr))
+suppressPackageStartupMessages(library(ggplot2))
+```
+
+```{css, echo=FALSE}
+.bg-danger {
+  background-color: lightsalmon;
+  border: 1px solid lightpink;
+  font-weight: bold;
+}
+```
+
+```{r helpers}
+```
+
+# Input data
+
+```{r}
+params
+save(params, file="params.RData")
+```
+
+```{r}
+input <- data.frame(list(
+   airr=read.csv(params$airr, header = F)[[1]],
+   read_count=read.csv(params$read_count, header = F)[[1]],
+   sample_id=read.csv(params$sample_id, header = F)[[1]])
+)
+
+parse_input <- function(row_id) {
+  cat("Row id: ", row_id, "\n")
+  row <- input[row_id,,drop=FALSE]
+  airr <- read_rearrangement(row[["airr"]])
+  airr_summary <- airr %>%
+    mutate(locus=alakazam::getLocus(v_call)) %>%
+    group_by(productive, locus) %>%
+    summarize(n=n()) %>%
+    mutate(productive = case_when(
+      productive == TRUE ~ "productive",
+      productive == FALSE ~ "unproductive"
+
+    )) %>%
+    ungroup() %>%
+    tidyr::pivot_wider(names_from=c(locus, productive), values_from=n)
+  rc <- read.delim(row[["read_count"]], header = F, stringsAsFactors = F)[[1]]
+  rc <- gsub("\\[.*\\]\\s+","",rc)
+  rc <- sub("\\s+reads\\.+$","",rc)
+  if (nrow(airr_summary)>0) {
+    ret <- cbind(
+      row,
+      data.frame(
+        list(
+          R1=as.numeric(sub("R1 reads\\s+","",rc[grepl("^R1",rc)])),
+          R2=as.numeric(sub("R2 reads\\s+","",rc[grepl("^R2",rc)])),
+          Rescued=as.numeric(sub("Rescued ","",rc[grepl("^Rescued",rc)])),
+          airr_reads=nrow(airr)
+        )
+      ),
+      airr_summary
+    )
+  } else {
+    ret <- cbind(
+      row,
+      data.frame(
+        list(
+          R1=as.numeric(sub("R1 reads\\s+","",rc[grepl("^R1",rc)])),
+          R2=as.numeric(sub("R2 reads\\s+","",rc[grepl("^R2",rc)])),
+          Rescued=as.numeric(sub("Rescued ","",rc[grepl("^Rescued",rc)])),
+          airr_reads=nrow(airr)
+        )
+      )
+    )
+  }
+  ret %>%
+    select(-read_count,-airr) %>%
+    select(sample_id, R1, R2, Rescued, airr_reads, contains("_productive"), everything())
+}
+
+trust4_summary <- bind_rows(lapply(1:nrow(input),parse_input))
+```
+
+# TRUST4 summary
+
+```{r echo=F, results='asis'}
+tab <- eetable(trust4_summary,
+               caption="Table showing the number of sequences at each processing step.")
+tab$table
+```
+```{r echo=FALSE,results='asis'}
+print_table_caption(tag="log_data", text=tab$caption)
+```
+
+```{r}
+data_cols <- c("sample_id","R1","Rescued", "airr_reads","IGH_productive")
+plot_data <- trust4_summary %>%
+   select(!!!rlang::syms(data_cols)) %>%
+   tidyr::pivot_longer(-sample_id)
+plot_data[['name']] <- factor(plot_data[['name']], levels=data_cols, ordered = T)
+```
+
+```{r}
+ggplot(plot_data,aes(x=name, y=value, color=sample_id, fill=sample_id)) +
+   geom_bar(stat="identity", width=.5, position = "dodge") +
+   theme_bw()
+```
+
+```{r}
+ggplot(plot_data %>%
+          filter(name != "R1"),aes(x=name, y=value, color=sample_id, fill=sample_id)) +
+   geom_bar(stat="identity", width=.5, position = "dodge") +
+   theme_bw()
+```
+
+# Session info
+
+## R
+
+```{r}
+sessionInfo()
+```
